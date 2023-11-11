@@ -1,8 +1,8 @@
 using UnityEngine;
 
-public class Grounded : State<Player>
+public class Grounded : OffWall
 {
-    public Grounded(Player source) : base(source)
+    public Grounded(Player source, string name) : base(source, "Grounded/" + name)
     {
     }
 
@@ -18,15 +18,20 @@ public class Grounded : State<Player>
 
     public override State<Player> HandleInput()
     {
-        if(!source.characterBody.OnGround()) {
+        if(source.jumpRequest.IsValid()) {
+            return source.jumpingState;
+        }
+
+        if(!source.characterBody.OnFloor()) {
             return source.fallingState;
         }
 
-        return null;
+        return base.HandleInput();
     }
 
     public override void HandleUpdate()
     {
-        source.characterBody.velocity = Vector2.MoveTowards(source.characterBody.velocity, Vector2.zero, Time.deltaTime);
+        source.characterBody.velocity = Vector2.MoveTowards(source.characterBody.velocity, Vector2.zero, source.move.acceleration * Time.deltaTime);
+        source.characterBody.MoveAndSlide();
     }
 }

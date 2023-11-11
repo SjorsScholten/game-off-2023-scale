@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [Serializable]
-public class Movement
+public class Move
 {
     public float speed;
     public float acceleration;

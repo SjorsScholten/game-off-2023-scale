@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [Serializable]
-public class Jumping
+public class Jump
 {
     public float height;
 

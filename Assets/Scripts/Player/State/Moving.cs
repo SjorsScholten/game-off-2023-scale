@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Moving : Grounded
 {
-    public Moving(Player source) : base(source)
+    public Moving(Player source) : base(source, "Moving")
     {
     }
 
@@ -26,7 +26,13 @@ public class Moving : Grounded
 
     public override void HandleUpdate()
     {
-        var motion = source.moveInput * source.move.speed;
-        source.characterBody.MoveAndSlide(motion);
+        var desiredSpeed    = source.moveInput.x * source.move.speed;
+        var maxSpeedChange  = source.move.acceleration * Time.deltaTime;
+        var moveAxis        = VectorExtension.Project(Vector2.right, source.characterBody.groundNormal).normalized;
+        var alignedSpeed    = Vector2.Dot(source.characterBody.velocity, moveAxis);
+        var finalSpeed      = Mathf.MoveTowards(alignedSpeed, desiredSpeed, maxSpeedChange);
+        
+        source.characterBody.velocity += moveAxis * (finalSpeed - alignedSpeed);
+        source.characterBody.MoveAndSlide();
     }
 }

@@ -3,10 +3,12 @@ using UnityEngine;
 
 public abstract class State<T>
 {
+    public readonly string name;
     public readonly T source;
 
-    public State(T source)
+    public State(T source, string name)
     {
+        this.name = name;
         this.source = source;
     }
 
@@ -33,7 +35,6 @@ public class StateMachine<T>
             stateCurrent.Exit();
             stateNew.Enter();
             stateCurrent = stateNew;
-            Debug.Log($"entered state {stateCurrent.GetType().Name}");
         }
     }
 

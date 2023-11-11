@@ -1,8 +1,8 @@
 using UnityEngine;
 
-public class Falling : State<Player>
+public class Falling : OffWall
 {
-    public Falling(Player source) : base(source)
+    public Falling(Player source) : base(source, "Falling")
     {
     }
 
@@ -18,7 +18,7 @@ public class Falling : State<Player>
 
     public override State<Player> HandleInput()
     {
-        if(source.characterBody.OnGround()) {
+        if(source.characterBody.OnFloor()) {
             if(Mathf.Abs(source.moveInput.x) > 0.01f)
                 return source.movingState;
             else
@@ -31,5 +31,6 @@ public class Falling : State<Player>
     public override void HandleUpdate()
     {
         source.characterBody.velocity += source.gravity.GetAcceleration() * Time.deltaTime;
+        source.characterBody.MoveAndSlide();
     }
 }

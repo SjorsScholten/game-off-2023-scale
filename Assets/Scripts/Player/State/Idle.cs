@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Idle : Grounded
 {
-    public Idle(Player source) : base(source)
+    public Idle(Player source) : base(source, "Idle")
     {
     }
 
