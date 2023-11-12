@@ -4,8 +4,8 @@ using UnityEngine;
 public class CharacterBody : MonoBehaviour
 {
     const int MAX_SLIDES = 5;
-    [Flags]
-    public enum CollisionFlags {
+
+    [Flags] public enum CollisionFlags {
         NONE        = 0,
         FLOOR       = 1 << 0,
         CEILING     = 1 << 1,
@@ -23,9 +23,9 @@ public class CharacterBody : MonoBehaviour
 
         public SnapShot(Vector2 position, Vector2 velocity, CollisionFlags collision)
         {
-            this.position = position;
-            this.velocity = velocity;
-            this.collision = collision;
+            this.position   = position;
+            this.velocity   = velocity;
+            this.collision  = collision;
         }
     }
 
@@ -36,8 +36,8 @@ public class CharacterBody : MonoBehaviour
 
         public Motion(Vector2 direction, float distance)
         {
-            this.direction = direction;
-            this.distance = distance;
+            this.direction  = direction;
+            this.distance   = distance;
         }
     }
 
@@ -52,12 +52,12 @@ public class CharacterBody : MonoBehaviour
 
         public TraceResult(bool collided, Vector2 normal, float penetration, float travel, float remainder, Vector2 projection)
         {
-            this.collided = collided;
-            this.normal = normal;
-            this.penetration = penetration;
-            this.travel = travel;
-            this.remainder = remainder;
-            this.projection = projection;
+            this.collided       = collided;
+            this.normal         = normal;
+            this.penetration    = penetration;
+            this.travel         = travel;
+            this.remainder      = remainder;
+            this.projection     = projection;
         }
 
         public Motion GetResponseMotion()
@@ -84,7 +84,7 @@ public class CharacterBody : MonoBehaviour
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireCube(position, _bounds.size);
+        Gizmos.DrawWireCube(position + (Vector2)_bounds.center, _bounds.size);
     }
 
     private void OnValidate()
@@ -100,41 +100,18 @@ public class CharacterBody : MonoBehaviour
 
     private void Update()
     {
-        if(Overlaps(position))
-        {
-            //RestoreState(_previousState);
-        }
+        //if(Overlaps(position))
+        //{
+        //    RestoreState(_previousState);
+        //}
 
-        _previousState = CaptureState();
-
-        collision = CollisionFlags.NONE;
-        var distance = 2 * skinWidth;
+        _previousState  = CaptureState();
+        collision       = CollisionFlags.NONE;
         
-        var result = Trace(new Motion(Vector2.down, distance));
-        if(result.collided)
-        {
-            groundNormal = result.normal;
-            collision |= CollisionFlags.FLOOR;
-        }
-        else
-        {
-            groundNormal = Vector2.up;
-        }
-
-        if(Trace(new Motion(Vector2.up, distance)).collided)
-        {
-            collision |= CollisionFlags.CEILING;
-        }
-
-        if(Trace(new Motion(Vector2.right, distance)).collided)
-        {
-            collision |= CollisionFlags.WALL_RIGHT;
-        }
-
-        if(Trace(new Motion(Vector2.left, distance)).collided)
-        {
-            collision |= CollisionFlags.WALL_LEFT;
-        }
+        CheckGround();
+        CheckCeiling();
+        CheckWallRight();
+        CheckWallLeft();
 
         _velocityInternal = velocity;
         _transform.position = position;
@@ -149,16 +126,55 @@ public class CharacterBody : MonoBehaviour
     private void InitializeValues()
     {
         _bounds = _collider2D.bounds;
+        _bounds.center = new Vector2(0, _bounds.extents.y);
         _bounds.Expand(new Vector3(2 * -skinWidth, 2 * -skinWidth, 0));
 
         velocity = Vector2.zero;
         position = _transform.position;
     }
 
+    private void CheckGround()
+    {
+        var result = Trace(new Motion(Vector2.down, skinWidth));
+        if(result.collided)
+        {
+            groundNormal = result.normal;
+            collision |= CollisionFlags.FLOOR;
+        }
+        else
+        {
+            groundNormal = Vector2.up;
+        }
+    }
+
+    private void CheckCeiling()
+    {
+        if(Trace(new Motion(Vector2.up, skinWidth)).collided)
+        {
+            collision |= CollisionFlags.CEILING;
+        }
+    }
+
+    private void CheckWallRight()
+    {
+        if(Trace(new Motion(Vector2.right, skinWidth)).collided)
+        {
+            collision |= CollisionFlags.WALL_RIGHT;
+        }
+    }
+
+    private void CheckWallLeft()
+    {
+        if(Trace(new Motion(Vector2.left, skinWidth)).collided)
+        {
+            collision |= CollisionFlags.WALL_LEFT;
+        }
+    }
+
     public TraceResult MoveAndCollide(Motion motion)
     {
-        var result = Trace(motion);
-        position += motion.direction * result.travel;
+        var result  = Trace(motion);
+        position   += motion.direction * result.travel;
         return result;
     }
 
@@ -196,46 +212,44 @@ public class CharacterBody : MonoBehaviour
 
     public TraceResult Trace(Motion motion)
     {
+        var origin  = position + (Vector2)_bounds.center;
         var results = new RaycastHit2D[1];
-        var hits = Physics2D.BoxCast(position, _bounds.size, 0, motion.direction, contactFilter, results, motion.distance + skinWidth);
+        var hits    = Physics2D.BoxCast(origin, _bounds.size, 0, motion.direction, contactFilter, results, motion.distance + skinWidth);
         if(hits > 0)
         {
-            var normal      = results[0].normal;
-            var dot         = Vector2.Dot(motion.direction, normal);
-            var penetration = dot * skinWidth;
-            var travel      = Vector2.Distance(position, results[0].centroid) + penetration;
-            var remainder   = (motion.distance - travel) * (1 + dot);
-            var projection  = (motion.direction - normal * dot).normalized;
-            return new TraceResult(true, normal, penetration, travel, remainder, projection);
+            var normal          = results[0].normal;
+            var centroid        = results[0].centroid;
+            var dot             = Vector2.Dot(motion.direction, -normal);
+            if(dot > 0)
+            {
+                var penetration = skinWidth / dot;
+                var travel      = Vector2.Distance(origin, centroid) - penetration;
+                var remainder   = (travel > 0) ? (motion.distance - travel) * dot : motion.distance * dot;
+                var projection  = (motion.direction + normal * dot).normalized;
+                return new TraceResult(true, normal, penetration, travel, remainder, projection);
+            }
         }
-        else
-        {
-            return new TraceResult(false, Vector2.zero, 0, motion.distance, 0, motion.direction);
-        }
+        
+        return new TraceResult(false, Vector2.zero, 0, motion.distance, 0, motion.direction);
     }
 
     public bool Overlaps(Vector2 position)
     {
         var results = new Collider2D[4];
-        var amount = Physics2D.OverlapBox(position, _bounds.size, 0, contactFilter, results);
+        var amount  = Physics2D.OverlapBox(position, _bounds.size, 0, contactFilter, results);
         return amount > 0;
     }
 
     public SnapShot CaptureState()
     {
-        return new SnapShot(
-            _transform.position,
-            _velocityInternal,
-            collision
-        );
+        return new SnapShot(_transform.position, _velocityInternal, collision);
     }
 
     public void RestoreState(SnapShot snapShot)
     {
-        position = snapShot.position;
-        velocity = snapShot.velocity;
-        collision = snapShot.collision;
-        Debug.Log("state restored");
+        position    = snapShot.position;
+        velocity    = snapShot.velocity;
+        collision   = snapShot.collision;
     }
 
     public bool OnFloor()

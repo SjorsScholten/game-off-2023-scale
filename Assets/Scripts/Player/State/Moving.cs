@@ -8,12 +8,12 @@ public class Moving : Grounded
 
     public override void Enter()
     {
-        
+        source.animator.SetBool("moving", true);
     }
 
     public override void Exit()
     {
-        
+        source.animator.SetBool("moving", false);
     }
 
     public override State<Player> HandleInput()
@@ -34,5 +34,7 @@ public class Moving : Grounded
         
         source.characterBody.velocity += moveAxis * (finalSpeed - alignedSpeed);
         source.characterBody.MoveAndSlide();
+
+        source.spriteRenderer.flipX = Vector2.Dot(source.moveInput, Vector2.right) < 0;
     }
 }

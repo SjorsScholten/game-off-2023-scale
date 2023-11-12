@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -23,6 +22,8 @@ public class Player : MonoBehaviour
     public StateMachine<Player> stateMachine;
 
     public CharacterBody characterBody;
+    public SpriteRenderer spriteRenderer;
+    public Animator animator;
     
     private void OnGUI()
     {
@@ -37,7 +38,9 @@ public class Player : MonoBehaviour
     private void Awake()
     {
         if(!characterBody)
-            characterBody = GetComponent<CharacterBody>();
+            characterBody   = GetComponent<CharacterBody>();
+        spriteRenderer      = GetComponent<SpriteRenderer>();
+        animator            = GetComponent<Animator>();
 
         InitializePlayerState();
     }
@@ -56,13 +59,12 @@ public class Player : MonoBehaviour
 
     private void InitializePlayerState()
     {
-        idleState = new Idle(this);
-        movingState = new Moving(this);
-        fallingState = new Falling(this);
-        jumpingState = new Jumping(this);
-        climbingState = new Climbing(this);
-
-        stateMachine = new StateMachine<Player>(idleState);
+        idleState       = new Idle(this);
+        movingState     = new Moving(this);
+        fallingState    = new Falling(this);
+        jumpingState    = new Jumping(this);
+        climbingState   = new Climbing(this);
+        stateMachine    = new StateMachine<Player>(idleState);
     }
 }
 
